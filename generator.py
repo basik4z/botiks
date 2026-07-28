@@ -1,0 +1,1 @@
+print("Генератор DAsistent")

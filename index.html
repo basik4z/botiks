@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ДААСС — помощник</title>
+    <style>
+        body { background: #0a0a0f; color: white; font-family: system-ui, sans-serif; text-align: center; padding: 40px; }
+        .logo { font-size: 48px; font-weight: 800; background: linear-gradient(135deg, #6ee7ff, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn { display: inline-block; margin: 12px; padding: 12px 28px; background: #a855f7; border-radius: 40px; color: white; text-decoration: none; font-weight: bold; border: none; cursor: pointer; }
+        .btn:hover { opacity: 0.9; }
+        .status { margin-top: 20px; padding: 16px; background: #1a1a2e; border-radius: 16px; }
+    </style>
+</head>
+<body>
+    <div class="logo">ДААСС</div>
+    <h1>Твой помощник в Telegram</h1>
+    <p>Отслеживай удалённые и изменённые сообщения</p>
+
+    <button class="btn" onclick="checkStatus()">🔄 Проверить статус</button>
+    <div class="status" id="status">Нажми кнопку, чтобы проверить</div>
+
+    <script>
+        async function checkStatus() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = '⏳ Проверка...';
+
+            // Просто демонстрация — реальный статус берётся из бота
+            // В GitHub Pages без бекенда — только фронтенд
+            setTimeout(() => {
+                statusDiv.innerText = '✅ Бот активен\n\nПодключи его в Настройки → Автоматизация чатов';
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
