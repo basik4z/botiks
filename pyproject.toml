@@ -1,0 +1,7 @@
+[project]
+name = "daass"
+version = "1.0.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "aiogram==2.25.1"
+]
