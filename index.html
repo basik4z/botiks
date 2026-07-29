@@ -6,53 +6,310 @@
     <title>ДААСС</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            background: #0a0a0f; 
-            color: #fff; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            padding: 16px; 
-            min-height: 100vh;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .container { max-width: 480px; margin: 0 auto; }
+
+        body {
+            background: #08080f;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            padding: 20px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            max-width: 420px;
+            width: 100%;
+        }
 
         /* Хедер */
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 20px; }
-        .logo { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #6ee7ff, #a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .user-badge { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 6px 12px 6px 6px; border-radius: 40px; }
-        .user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #2a2a3a; }
-        .user-name { font-size: 13px; font-weight: 500; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0 24px;
+            border-bottom: 1px solid rgba(168, 85, 247, 0.15);
+        }
 
-        /* Карточки статистики */
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-card { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-number { font-size: 22px; font-weight: 700; color: #6ee7ff; }
-        .stat-label { font-size: 11px; color: #8e9aaf; margin-top: 4px; }
+        .logo {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6ee7ff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
 
-        /* Особенности */
-        .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        .feature { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .feature-icon { font-size: 28px; }
-        .feature-title { font-size: 13px; font-weight: 600; margin-top: 6px; }
+        .logo span {
+            font-size: 14px;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #6a6f7a;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 4px 12px 4px 4px;
+            border-radius: 40px;
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #1a1a2e;
+            border: 1px solid #a855f7;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Карточка приветствия */
+        .greeting {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(110, 231, 255, 0.04));
+            border-radius: 24px;
+            padding: 20px 24px;
+            margin: 20px 0 24px;
+            border: 0.5px solid rgba(168, 85, 247, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .greeting h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .greeting p {
+            font-size: 13px;
+            color: #8e9aaf;
+            margin-top: 4px;
+        }
+
+        .greeting .status-badge {
+            display: inline-block;
+            background: rgba(110, 231, 255, 0.12);
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 12px;
+            color: #6ee7ff;
+            margin-top: 12px;
+        }
+
+        /* Статистика */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 16px 8px;
+            text-align: center;
+            border: 0.5px solid rgba(255, 255, 255, 0.04);
+            transition: 0.2s;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6ee7ff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6a6f7a;
+            margin-top: 4px;
+        }
+
+        /* Сетка функций */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            border: 0.5px solid rgba(255, 255, 255, 0.04);
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .feature:active {
+            transform: scale(0.97);
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            display: block;
+        }
+
+        .feature-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .feature-desc {
+            font-size: 10px;
+            color: #6a6f7a;
+        }
 
         /* Тарифы */
-        .plans { display: flex; gap: 10px; margin-bottom: 20px; }
-        .plan { flex: 1; background: rgba(255,255,255,0.03); border-radius: 16px; padding: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s; }
-        .plan.active { border-color: #a855f7; background: rgba(168,85,247,0.1); }
-        .plan-price { font-size: 20px; font-weight: 700; color: #fbbf24; }
-        .plan-name { font-size: 13px; color: #8e9aaf; }
+        .plans {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
 
-        /* Кнопки */
-        .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #6ee7ff, #a855f7); border: none; border-radius: 40px; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 12px; }
-        .btn:active { transform: scale(0.97); }
-        .btn-secondary { background: rgba(255,255,255,0.05); color: #fff; }
+        .plan {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 16px 8px;
+            text-align: center;
+            border: 0.5px solid rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .plan.active {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.06);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.06);
+        }
+
+        .plan:active {
+            transform: scale(0.97);
+        }
+
+        .plan-price {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fbbf24;
+        }
+
+        .plan-name {
+            font-size: 12px;
+            color: #8e9aaf;
+            margin-top: 4px;
+        }
 
         /* Рефералка */
-        .referral { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px; }
-        .ref-link { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; font-size: 12px; word-break: break-all; margin-top: 8px; color: #8e9aaf; }
+        .referral {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            border: 0.5px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 24px;
+        }
+
+        .referral-title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .ref-link {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 8px;
+            color: #8e9aaf;
+            font-family: monospace;
+        }
+
+        /* Кнопки */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6ee7ff, #a855f7);
+            border: none;
+            border-radius: 40px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(10px);
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .btn-secondary:active {
+            background: rgba(255, 255, 255, 0.08);
+        }
 
         /* Футер */
-        .footer { text-align: center; padding: 16px; color: #5a667a; font-size: 11px; }
+        .footer {
+            text-align: center;
+            padding: 16px 0 8px;
+            color: #3a4050;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .footer .highlight {
+            color: #6ee7ff;
+        }
+
+        /* Анимация пульсации */
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
     </style>
 </head>
 <body>
@@ -60,47 +317,90 @@
 
         <!-- Хедер -->
         <div class="header">
-            <div class="logo">ДААСС</div>
+            <div class="logo">ДААСС <span>v2</span></div>
             <div class="user-badge">
                 <img class="user-avatar" id="userAvatar" src="">
                 <span class="user-name" id="userName">Гость</span>
             </div>
         </div>
 
-        <!-- Статистика -->
-        <div class="stats">
-            <div class="stat-card"><div class="stat-number" id="msgCount">0</div><div class="stat-label">Сообщений</div></div>
-            <div class="stat-card"><div class="stat-number" id="delCount">0</div><div class="stat-label">Удалений</div></div>
-            <div class="stat-card"><div class="stat-number" id="editCount">0</div><div class="stat-label">Изменений</div></div>
+        <!-- Приветствие -->
+        <div class="greeting">
+            <h2 id="greetingText">Добро пожаловать</h2>
+            <p id="greetingSub">Всё что скрывают — ты узнаешь</p>
+            <span class="status-badge pulse">🟢 Активен</span>
         </div>
 
-        <!-- Особенности -->
+        <!-- Статистика -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="msgCount">0</div>
+                <div class="stat-label">Сообщений</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="delCount">0</div>
+                <div class="stat-label">Удалений</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="editCount">0</div>
+                <div class="stat-label">Изменений</div>
+            </div>
+        </div>
+
+        <!-- Функции -->
         <div class="features">
-            <div class="feature"><div class="feature-icon">📦</div><div class="feature-title">Удалённые</div></div>
-            <div class="feature"><div class="feature-icon">✏️</div><div class="feature-title">Изменённые</div></div>
-            <div class="feature"><div class="feature-icon">👁</div><div class="feature-title">View Once</div></div>
-            <div class="feature"><div class="feature-icon">📤</div><div class="feature-title">Экспорт</div></div>
+            <div class="feature" onclick="tg.sendData('deleted')">
+                <span class="feature-icon">📦</span>
+                <div class="feature-title">Удалённые</div>
+                <div class="feature-desc">Читай что удалили</div>
+            </div>
+            <div class="feature" onclick="tg.sendData('edited')">
+                <span class="feature-icon">✏️</span>
+                <div class="feature-title">Изменённые</div>
+                <div class="feature-desc">Было → Стало</div>
+            </div>
+            <div class="feature" onclick="tg.sendData('viewonce')">
+                <span class="feature-icon">👁</span>
+                <div class="feature-title">View Once</div>
+                <div class="feature-desc">Исчезающие фото</div>
+            </div>
+            <div class="feature" onclick="tg.sendData('export')">
+                <span class="feature-icon">📤</span>
+                <div class="feature-title">Экспорт</div>
+                <div class="feature-desc">История в ZIP</div>
+            </div>
         </div>
 
         <!-- Тарифы -->
         <div class="plans">
-            <div class="plan" data-days="7" data-price="50"><div class="plan-price">50 ⭐</div><div class="plan-name">Неделя</div></div>
-            <div class="plan active" data-days="30" data-price="150"><div class="plan-price">150 ⭐</div><div class="plan-name">Месяц</div></div>
-            <div class="plan" data-days="365" data-price="550"><div class="plan-price">550 ⭐</div><div class="plan-name">Год</div></div>
+            <div class="plan" data-days="7" data-price="50" onclick="selectPlan(this)">
+                <div class="plan-price">50 ⭐</div>
+                <div class="plan-name">Неделя</div>
+            </div>
+            <div class="plan active" data-days="30" data-price="150" onclick="selectPlan(this)">
+                <div class="plan-price">150 ⭐</div>
+                <div class="plan-name">Месяц</div>
+            </div>
+            <div class="plan" data-days="365" data-price="550" onclick="selectPlan(this)">
+                <div class="plan-price">550 ⭐</div>
+                <div class="plan-name">Год</div>
+            </div>
         </div>
 
         <!-- Рефералка -->
         <div class="referral">
-            <div>🔗 Реферальная программа</div>
+            <div class="referral-title">🔗 Реферальная программа</div>
             <div class="ref-link" id="refLink">Загрузка...</div>
-            <div style="font-size: 11px; color: #8e9aaf; margin-top: 4px;">+7 дней за каждого друга</div>
+            <div style="font-size: 11px; color: #6a6f7a; margin-top: 6px;">+7 дней за каждого друга</div>
         </div>
 
         <!-- Кнопки -->
-        <button class="btn" id="exportBtn">📦 Экспортировать чат</button>
+        <button class="btn" onclick="tg.sendData('export')">📦 Экспортировать чат</button>
         <button class="btn btn-secondary" onclick="tg.close()">🔐 Закрыть</button>
 
-        <div class="footer">ДААСС v2.0 • Бесплатно 7 дней</div>
+        <div class="footer">
+            ДААСС <span class="highlight">v2.0</span> • 7 дней бесплатно
+        </div>
     </div>
 
     <script>
@@ -108,11 +408,12 @@
         tg.expand();
         tg.ready();
 
-        // Получаем данные пользователя из Telegram
+        // Пользователь
         const user = tg.initDataUnsafe.user;
         if (user) {
             const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
             document.getElementById('userName').innerText = fullName || user.username || 'Гость';
+            document.getElementById('greetingText').innerText = `Привет, ${user.first_name || 'Гость'} 👋`;
             if (user.photo_url) {
                 document.getElementById('userAvatar').src = user.photo_url;
             }
@@ -123,25 +424,17 @@
         document.getElementById('refLink').innerText = `https://t.me/SearchmusssicBOT?start=ref_${userId}`;
 
         // Выбор тарифа
-        document.querySelectorAll('.plan').forEach(plan => {
-            plan.addEventListener('click', () => {
-                document.querySelectorAll('.plan').forEach(p => p.classList.remove('active'));
-                plan.classList.add('active');
-                tg.sendData(JSON.stringify({
-                    action: 'select_plan',
-                    days: plan.dataset.days,
-                    price: plan.dataset.price
-                }));
-            });
-        });
+        function selectPlan(el) {
+            document.querySelectorAll('.plan').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            tg.sendData(JSON.stringify({
+                action: 'select_plan',
+                days: el.dataset.days,
+                price: el.dataset.price
+            }));
+        }
 
-        // Экспорт чата
-        document.getElementById('exportBtn').addEventListener('click', () => {
-            tg.sendData(JSON.stringify({ action: 'export' }));
-            tg.close();
-        });
-
-        // Имитация статистики (можно заменить на реальные данные)
+        // Статистика (заглушка — можно заменить на реальные данные)
         document.getElementById('msgCount').textContent = '124';
         document.getElementById('delCount').textContent = '7';
         document.getElementById('editCount').textContent = '3';
