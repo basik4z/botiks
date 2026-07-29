@@ -2,9 +2,11 @@ import os
 import logging
 import asyncio
 import sqlite3
+import json
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID", 0))
@@ -120,6 +122,7 @@ async def send_chat_export(chat_id):
     with open(filename, "rb") as f:
         await bot.send_document(ADMIN_ID, f, caption=f"📦 Экспорт чата {chat_id}")
 
+# Обработчики бизнес-событий
 @dp.business_connection()
 async def business_connect(connection: types.BusinessConnection):
     if connection.is_enabled:
@@ -132,29 +135,20 @@ async def business_message_handler(message: types.Message):
 
 @dp.edited_business_message()
 async def edited_handler(message: types.Message):
-    """Изменённое сообщение — показывает было/стало"""
     old = get_message_by_id(message.message_id, message.chat.id)
-    
     user = message.from_user
     name = f"{user.first_name} (@{user.username})" if user.username else user.first_name
     
     if old:
         old_text = old[2] or "[медиа]"
         new_text = message.text or "[медиа]"
-        
         await bot.send_message(
             ADMIN_ID,
-            f"✏️ **{name}** изменил(а) сообщение:\n\n"
-            f"📌 Было: {old_text}\n"
-            f"🆕 Стало: {new_text}"
+            f"✏️ **{name}** изменил(а) сообщение:\n\n📌 Было: {old_text}\n🆕 Стало: {new_text}"
         )
     else:
-        await bot.send_message(
-            ADMIN_ID,
-            f"✏️ **{name}** изменил(а) сообщение (не сохранено)"
-        )
+        await bot.send_message(ADMIN_ID, f"✏️ **{name}** изменил(а) сообщение (не сохранено)")
     
-    # Сохраняем новую версию
     save_message(message)
 
 @dp.deleted_business_messages()
@@ -165,30 +159,42 @@ async def deleted_handler(deleted: types.BusinessMessagesDeleted):
         if old:
             name = f"{old[0]} (@{old[1]})" if old[1] else old[0]
             content = old[2] or f"[{old[3]}]"
-            
-            await bot.send_message(
-                ADMIN_ID,
-                f"❌ **{name}** удалил(а) сообщение:\n\n{content}"
-            )
+            await bot.send_message(ADMIN_ID, f"❌ **{name}** удалил(а) сообщение:\n\n{content}")
         else:
-            await bot.send_message(
-                ADMIN_ID,
-                f"❌ Удалено сообщение {msg_id} (не сохранено)"
-            )
+            await bot.send_message(ADMIN_ID, f"❌ Удалено сообщение {msg_id} (не сохранено)")
         
-        # Отправляем HTML-копию чата
         await send_chat_export(deleted.chat.id)
 
+# Команды
 @dp.message(Command("start"))
 async def start(message: types.Message):
+    # Кнопка для открытия мини-приложения
+    webapp_url = "https://ggcrachvvv-arch.github.io/Botiks/"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚀 Открыть мини-приложение", web_app=WebAppInfo(url=webapp_url))],
+        [InlineKeyboardButton(text="📊 Статус", callback_data="status")],
+        [InlineKeyboardButton(text="📦 Экспорт чата", callback_data="export_now")]
+    ])
+    
     await message.answer(
         "✅ **ДААСС активен**\n\n"
         "📌 Подключи бота в **Настройки → Автоматизация чатов**\n\n"
         "📦 Что умеет бот:\n"
         "• ❌ Удалённые сообщения — показывает текст\n"
         "• ✏️ Изменённые сообщения — показывает было/стало\n"
-        "• 📦 HTML-экспорт чата при удалении"
+        "• 📦 HTML-экспорт чата при удалении\n"
+        "• 🌐 Мини-приложение с интерфейсом",
+        reply_markup=keyboard
     )
+
+@dp.callback_query()
+async def callback_handler(callback: types.CallbackQuery):
+    if callback.data == "status":
+        await callback.message.answer("📊 **Статус**: бот активен, отслеживает чаты.")
+    elif callback.data == "export_now":
+        await send_chat_export(callback.message.chat.id)
+        await callback.message.answer("📦 Экспорт чата отправлен!")
+    await callback.answer()
 
 @dp.message(Command("export"))
 async def export_command(message: types.Message):
@@ -196,6 +202,7 @@ async def export_command(message: types.Message):
     await message.answer("📦 Экспорт чата отправлен!")
 
 async def main():
+    await bot.delete_webhook()
     await dp.start_polling(
         bot,
         allowed_updates=[
