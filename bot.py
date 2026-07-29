@@ -2,7 +2,6 @@ import os
 import logging
 import asyncio
 import sqlite3
-import json
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -122,7 +121,6 @@ async def send_chat_export(chat_id):
     with open(filename, "rb") as f:
         await bot.send_document(ADMIN_ID, f, caption=f"📦 Экспорт чата {chat_id}")
 
-# Обработчики бизнес-событий
 @dp.business_connection()
 async def business_connect(connection: types.BusinessConnection):
     if connection.is_enabled:
@@ -165,10 +163,8 @@ async def deleted_handler(deleted: types.BusinessMessagesDeleted):
         
         await send_chat_export(deleted.chat.id)
 
-# Команды
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    # Кнопка для открытия мини-приложения
     webapp_url = "https://ggcrachvvv-arch.github.io/Botiks/"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 Открыть мини-приложение", web_app=WebAppInfo(url=webapp_url))],
