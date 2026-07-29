@@ -140,10 +140,7 @@ async def edited_handler(message: types.Message):
     if old:
         old_text = old[2] or "[медиа]"
         new_text = message.text or "[медиа]"
-        await bot.send_message(
-            ADMIN_ID,
-            f"✏️ **{name}** изменил(а) сообщение:\n\n📌 Было: {old_text}\n🆕 Стало: {new_text}"
-        )
+        await bot.send_message(ADMIN_ID, f"✏️ **{name}** изменил(а) сообщение:\n\n📌 Было: {old_text}\n🆕 Стало: {new_text}")
     else:
         await bot.send_message(ADMIN_ID, f"✏️ **{name}** изменил(а) сообщение (не сохранено)")
     
@@ -153,7 +150,6 @@ async def edited_handler(message: types.Message):
 async def deleted_handler(deleted: types.BusinessMessagesDeleted):
     for msg_id in deleted.message_ids:
         old = get_message_by_id(msg_id, deleted.chat.id)
-        
         if old:
             name = f"{old[0]} (@{old[1]})" if old[1] else old[0]
             content = old[2] or f"[{old[3]}]"
@@ -165,13 +161,10 @@ async def deleted_handler(deleted: types.BusinessMessagesDeleted):
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    webapp_url = "https://ggcrachvvv-arch.github.io/Botiks/"
+    webapp_url = "https://basik4z.github.io/daass-site/"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Открыть мини-приложение", web_app=WebAppInfo(url=webapp_url))],
-        [InlineKeyboardButton(text="📊 Статус", callback_data="status")],
-        [InlineKeyboardButton(text="📦 Экспорт чата", callback_data="export_now")]
+        [InlineKeyboardButton(text="🚀 Открыть мини-приложение", web_app=WebAppInfo(url=webapp_url))]
     ])
-    
     await message.answer(
         "✅ **ДААСС активен**\n\n"
         "📌 Подключи бота в **Настройки → Автоматизация чатов**\n\n"
