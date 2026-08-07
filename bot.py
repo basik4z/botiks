@@ -16,8 +16,10 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # ==================== БАЗА ДАННЫХ ====================
-conn = sqlite3.connect('chat_history.db')
+conn = sqlite3.connect('chat_history.db', check_same_thread=False)
 cursor = conn.cursor()
+
+# Таблица сообщений
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER,
@@ -31,7 +33,27 @@ cursor.execute('''
         timestamp TEXT
     )
 ''')
+
+# Таблица мута
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS mutes (
+        chat_id INTEGER,
+        user_id INTEGER,
+        PRIMARY KEY (chat_id, user_id)
+    )
+''')
+
+# Таблица копирования
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS copy (
+        chat_id INTEGER PRIMARY KEY,
+        enabled INTEGER DEFAULT 0
+    )
+''')
+
 conn.commit()
+
+# ==================== ФУНКЦИИ БАЗЫ ====================
 
 def save_message(msg):
     user = msg.from_user
@@ -82,6 +104,15 @@ def get_message_by_id(msg_id, chat_id):
         WHERE id = ? AND chat_id = ?
     ''', (msg_id, chat_id))
     return cursor.fetchone()
+
+def is_muted(chat_id, user_id):
+    cursor.execute('SELECT 1 FROM mutes WHERE chat_id=? AND user_id=?', (chat_id, user_id))
+    return cursor.fetchone() is not None
+
+def is_copy_enabled(chat_id):
+    cursor.execute('SELECT enabled FROM copy WHERE chat_id=?', (chat_id,))
+    row = cursor.fetchone()
+    return row and row[0] == 1
 
 def get_chat_history(chat_id):
     cursor.execute('''
@@ -139,8 +170,28 @@ async def business_connect(connection: types.BusinessConnection):
 
 @dp.business_message()
 async def business_message_handler(message: types.Message):
-    logging.info(f"📩 Сохранено: {message.text or message.content_type}")
-    save_message(message)
+    if not message.from_user:
+        return
+    
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    
+    # Проверяем мут
+    if is_muted(chat_id, user_id):
+        await message.delete()
+        await bot.send_message(
+            chat_id,
+            f"🔇 {message.from_user.first_name}, вы замучены. Сообщение удалено."
+        )
+        return
+    
+    # Проверяем копирование
+    if is_copy_enabled(chat_id):
+        save_message(message)
+        logging.info(f"📩 Скопировано: {message.text or message.content_type}")
+    else:
+        logging.info(f"📩 Сохранено: {message.text or message.content_type}")
+        save_message(message)
 
 @dp.edited_business_message()
 async def edited_handler(message: types.Message):
@@ -170,7 +221,7 @@ async def deleted_handler(deleted: types.BusinessMessagesDeleted):
         
         await send_chat_export(deleted.chat.id)
 
-# ==================== ОБЫЧНЫЕ КОМАНДЫ ====================
+# ==================== КОМАНДЫ ====================
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
@@ -180,38 +231,96 @@ async def start(message: types.Message):
     ])
     await message.answer(
         "✅ **ДААСС активен**\n\n"
-        "📌 Нажми кнопку, чтобы открыть мини-приложение.\n"
-        "📇 Отправь контакт для экспорта чата.",
+        "📌 Команды:\n"
+        "• `.mute` — замутить пользователя (ответь на его сообщение)\n"
+        "• `.unmute` — размутить\n"
+        "• `.copy on` — включить копирование чата\n"
+        "• `.copy off` — выключить копирование\n"
+        "• `.export` — экспорт чата\n\n"
+        "🌐 Открой мини-приложение для полного интерфейса.",
         reply_markup=keyboard
     )
 
-# ==================== ОБРАБОТКА КОНТАКТА ====================
+# ==================== МУТ ====================
 
-@dp.message(lambda message: message.contact)
-async def handle_contact(message: types.Message):
+@dp.message(lambda message: message.text and message.text.startswith('.mute'))
+async def mute_user(message: types.Message):
+    if not message.reply_to_message:
+        await message.answer("❌ Ответь на сообщение пользователя, которого хочешь замутить.")
+        return
+    
+    target = message.reply_to_message.from_user
     chat_id = message.chat.id
-    contact = message.contact
-    contact_name = f"{contact.first_name} {contact.last_name or ''}".strip()
-
-    # Удаляем сообщение с контактом
-    await bot.delete_message(chat_id, message.message_id)
-
-    # Отправляем подтверждение
-    await bot.send_message(
-        chat_id,
-        f"✅ Контакт **{contact_name}** получен. Начинаю экспорт..."
+    
+    cursor.execute('INSERT OR REPLACE INTO mutes (chat_id, user_id) VALUES (?, ?)', (chat_id, target.id))
+    conn.commit()
+    
+    await message.delete()
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔓 Размутить", callback_data=f"unmute_{chat_id}_{target.id}")]
+    ])
+    
+    await message.reply_to_message.reply(
+        f"🔇 **{target.first_name}** замучен!\n\nСообщения будут удаляться. Нажми кнопку, чтобы размутить.",
+        reply_markup=keyboard
     )
 
-    # Ищем чат с этим контактом
-    try:
-        chat = await bot.get_chat(contact.user_id)
-        chat_id_contact = chat.id
-    except Exception as e:
-        await bot.send_message(chat_id, f"❌ Не удалось найти чат с {contact_name}")
+@dp.message(lambda message: message.text and message.text.startswith('.unmute'))
+async def unmute_command(message: types.Message):
+    if not message.reply_to_message:
+        await message.answer("❌ Ответь на сообщение пользователя, которого хочешь размутить.")
         return
+    
+    target = message.reply_to_message.from_user
+    chat_id = message.chat.id
+    
+    cursor.execute('DELETE FROM mutes WHERE chat_id=? AND user_id=?', (chat_id, target.id))
+    conn.commit()
+    
+    await message.delete()
+    await message.reply_to_message.reply(f"✅ **{target.first_name}** размучен.")
 
-    # Делаем экспорт
-    await send_chat_export(chat_id_contact, contact_name)
+@dp.callback_query(lambda c: c.data and c.data.startswith('unmute_'))
+async def unmute_callback(callback: types.CallbackQuery):
+    data = callback.data.split('_')
+    chat_id = int(data[1])
+    user_id = int(data[2])
+    
+    cursor.execute('DELETE FROM mutes WHERE chat_id=? AND user_id=?', (chat_id, user_id))
+    conn.commit()
+    
+    await callback.message.edit_text(f"✅ Пользователь размучен.")
+    await callback.answer()
+
+# ==================== КОПИРОВАНИЕ ====================
+
+@dp.message(lambda message: message.text and message.text.startswith('.copy'))
+async def copy_command(message: types.Message):
+    chat_id = message.chat.id
+    args = message.text.split()
+    
+    if len(args) < 2:
+        await message.answer("❌ Использование: `.copy on` или `.copy off`")
+        return
+    
+    if args[1].lower() == 'on':
+        cursor.execute('INSERT OR REPLACE INTO copy (chat_id, enabled) VALUES (?, ?)', (chat_id, 1))
+        conn.commit()
+        await message.answer("✅ Копирование чата включено.")
+    elif args[1].lower() == 'off':
+        cursor.execute('DELETE FROM copy WHERE chat_id=?', (chat_id,))
+        conn.commit()
+        await message.answer("❌ Копирование чата выключено.")
+    else:
+        await message.answer("❌ Использование: `.copy on` или `.copy off`")
+
+# ==================== ЭКСПОРТ ====================
+
+@dp.message(Command("export"))
+async def export_command(message: types.Message):
+    await send_chat_export(message.chat.id)
+    await message.answer("📦 Экспорт чата отправлен!")
 
 # ==================== ЗАПУСК ====================
 
