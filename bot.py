@@ -175,8 +175,58 @@ async def business_message_handler(message: types.Message):
     
     chat_id = message.chat.id
     user_id = message.from_user.id
+    text = message.text or ""
     
-    # Проверяем мут
+    # ===== ОБРАБОТКА КОМАНД =====
+    if text.startswith('.mute'):
+        if not message.reply_to_message:
+            await message.answer("❌ Ответь на сообщение пользователя, которого хочешь замутить.")
+            return
+        target = message.reply_to_message.from_user
+        cursor.execute('INSERT OR REPLACE INTO mutes (chat_id, user_id) VALUES (?, ?)', (chat_id, target.id))
+        conn.commit()
+        await message.delete()
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔓 Размутить", callback_data=f"unmute_{chat_id}_{target.id}")]
+        ])
+        await message.reply_to_message.reply(
+            f"🔇 **{target.first_name}** замучен!\n\nСообщения будут удаляться. Нажми кнопку, чтобы размутить.",
+            reply_markup=keyboard
+        )
+        return
+    
+    if text.startswith('.unmute'):
+        if not message.reply_to_message:
+            await message.answer("❌ Ответь на сообщение пользователя, которого хочешь размутить.")
+            return
+        target = message.reply_to_message.from_user
+        cursor.execute('DELETE FROM mutes WHERE chat_id=? AND user_id=?', (chat_id, target.id))
+        conn.commit()
+        await message.delete()
+        await message.reply_to_message.reply(f"✅ **{target.first_name}** размучен.")
+        return
+    
+    if text.startswith('.copy'):
+        args = text.split()
+        if len(args) < 2:
+            await message.answer("❌ Использование: `.copy on` или `.copy off`")
+            return
+        if args[1].lower() == 'on':
+            cursor.execute('INSERT OR REPLACE INTO copy (chat_id, enabled) VALUES (?, ?)', (chat_id, 1))
+            conn.commit()
+            await message.answer("✅ Копирование чата включено.")
+        elif args[1].lower() == 'off':
+            cursor.execute('DELETE FROM copy WHERE chat_id=?', (chat_id,))
+            conn.commit()
+            await message.answer("❌ Копирование чата выключено.")
+        return
+    
+    if text.startswith('/export'):
+        await send_chat_export(chat_id)
+        await message.answer("📦 Экспорт чата отправлен!")
+        return
+    
+    # ===== МУТ =====
     if is_muted(chat_id, user_id):
         await message.delete()
         await bot.send_message(
@@ -185,13 +235,13 @@ async def business_message_handler(message: types.Message):
         )
         return
     
-    # Проверяем копирование
+    # ===== КОПИРОВАНИЕ =====
     if is_copy_enabled(chat_id):
         save_message(message)
-        logging.info(f"📩 Скопировано: {message.text or message.content_type}")
+        logging.info(f"📩 Скопировано: {text or message.content_type}")
     else:
-        logging.info(f"📩 Сохранено: {message.text or message.content_type}")
         save_message(message)
+        logging.info(f"📩 Сохранено: {text or message.content_type}")
 
 @dp.edited_business_message()
 async def edited_handler(message: types.Message):
@@ -221,7 +271,7 @@ async def deleted_handler(deleted: types.BusinessMessagesDeleted):
         
         await send_chat_export(deleted.chat.id)
 
-# ==================== КОМАНДЫ ====================
+# ==================== ОБЫЧНЫЙ СТАРТ ====================
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
@@ -236,50 +286,12 @@ async def start(message: types.Message):
         "• `.unmute` — размутить\n"
         "• `.copy on` — включить копирование чата\n"
         "• `.copy off` — выключить копирование\n"
-        "• `.export` — экспорт чата\n\n"
+        "• `/export` — экспорт чата\n\n"
         "🌐 Открой мини-приложение для полного интерфейса.",
         reply_markup=keyboard
     )
 
-# ==================== МУТ ====================
-
-@dp.message(lambda message: message.text and message.text.startswith('.mute'))
-async def mute_user(message: types.Message):
-    if not message.reply_to_message:
-        await message.answer("❌ Ответь на сообщение пользователя, которого хочешь замутить.")
-        return
-    
-    target = message.reply_to_message.from_user
-    chat_id = message.chat.id
-    
-    cursor.execute('INSERT OR REPLACE INTO mutes (chat_id, user_id) VALUES (?, ?)', (chat_id, target.id))
-    conn.commit()
-    
-    await message.delete()
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔓 Размутить", callback_data=f"unmute_{chat_id}_{target.id}")]
-    ])
-    
-    await message.reply_to_message.reply(
-        f"🔇 **{target.first_name}** замучен!\n\nСообщения будут удаляться. Нажми кнопку, чтобы размутить.",
-        reply_markup=keyboard
-    )
-
-@dp.message(lambda message: message.text and message.text.startswith('.unmute'))
-async def unmute_command(message: types.Message):
-    if not message.reply_to_message:
-        await message.answer("❌ Ответь на сообщение пользователя, которого хочешь размутить.")
-        return
-    
-    target = message.reply_to_message.from_user
-    chat_id = message.chat.id
-    
-    cursor.execute('DELETE FROM mutes WHERE chat_id=? AND user_id=?', (chat_id, target.id))
-    conn.commit()
-    
-    await message.delete()
-    await message.reply_to_message.reply(f"✅ **{target.first_name}** размучен.")
+# ==================== КНОПКА РАЗМУТА ====================
 
 @dp.callback_query(lambda c: c.data and c.data.startswith('unmute_'))
 async def unmute_callback(callback: types.CallbackQuery):
@@ -292,35 +304,6 @@ async def unmute_callback(callback: types.CallbackQuery):
     
     await callback.message.edit_text(f"✅ Пользователь размучен.")
     await callback.answer()
-
-# ==================== КОПИРОВАНИЕ ====================
-
-@dp.message(lambda message: message.text and message.text.startswith('.copy'))
-async def copy_command(message: types.Message):
-    chat_id = message.chat.id
-    args = message.text.split()
-    
-    if len(args) < 2:
-        await message.answer("❌ Использование: `.copy on` или `.copy off`")
-        return
-    
-    if args[1].lower() == 'on':
-        cursor.execute('INSERT OR REPLACE INTO copy (chat_id, enabled) VALUES (?, ?)', (chat_id, 1))
-        conn.commit()
-        await message.answer("✅ Копирование чата включено.")
-    elif args[1].lower() == 'off':
-        cursor.execute('DELETE FROM copy WHERE chat_id=?', (chat_id,))
-        conn.commit()
-        await message.answer("❌ Копирование чата выключено.")
-    else:
-        await message.answer("❌ Использование: `.copy on` или `.copy off`")
-
-# ==================== ЭКСПОРТ ====================
-
-@dp.message(Command("export"))
-async def export_command(message: types.Message):
-    await send_chat_export(message.chat.id)
-    await message.answer("📦 Экспорт чата отправлен!")
 
 # ==================== ЗАПУСК ====================
 
